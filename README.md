@@ -1,3 +1,4 @@
 # Parallel-computing
 Here is a code for the Dijkstra Algorithm that is taken from a GreeksforGreeks source and we had modified the code as required.
 It is written using the C++ program that implements the longest edge from the source in a graph is found with Dijkstra’s algorithm. To build the graph an adjacency matrix is used. The algorithm is performed incrementally. The program create a graph with random weights and test the algorithm’s execution time as well as the time spent on various critical operations such as the selection of the minimum distance and updating shortest distances. Timers are used to track the performance of these steps. The graph has 19999 vertices, Dijkstra’s algorithm is executed starting from vertex 0.
+- the original code taken from https://www.geeksforgeeks.org/dijkstras-shortest-path-algorithm-greedy-algo-7/
