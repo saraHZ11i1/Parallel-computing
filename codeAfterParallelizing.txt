@@ -1,0 +1,134 @@
+#include <limits.h>
+#include <stdio.h>
+#include <chrono> // Include for timer
+#include <iostream>
+#include <iomanip> // Include for std::setprecision
+#include <vector>
+#include <cstdlib>  // for random generation
+#include <omp.h>
+#include <random> // for same set random generation
+
+// Number of vertices in the graph
+#define V 19999
+/// A utility function to find the vertex with minimum
+// distance value, from the set of vertices not yet included
+// in shortest path tree
+int minDistance (const std::vector<int>& dist, const std::vector<bool>& sptSet) {
+// Initialize min value
+    int min = INT_MAX, min_index;
+#pragma omp parallel for
+        for (int v = 0; v < V; v++) {
+        if (!sptSet[v] && dist[v] <= min) {
+           //#pragma omp atomic
+            {
+                if (dist[v] < min) {
+                    min = dist[v];
+                    min_index = v;
+                }
+            }
+            min = dist[v];
+            min_index = v;
+        }
+    }
+    std::cout << "Final Updated min: " << min << ", min_index: " << min_index << std::endl;
+    return min_index;
+}
+
+
+
+
+
+// Function that implements Dijkstra's single source
+// shortest path algorithm for a graph represented using
+// adjacency matrix representation
+void dijkstra (const std::vector<std::vector<int>>& graph, int src)
+{
+    auto start_timer = std::chrono::high_resolution_clock::now(); // Start total execution timer for dijkstra
+
+    std::vector<int> dist(V, INT_MAX); // The output array. dist(V, INT_MAX) will hold the
+                // shortest
+    // distance from src to i
+    std::vector<bool> sptSet(V, false); // // sptSet(V, false) will be true if vertex i is
+                    // included in shortest
+    // path tree or shortest distance from src to i is
+    // finalized
+
+    dist[src] = 0; // Distance of source vertex from itself is always 0
+
+    double total_timer_minDistance = 0.0; // Total timer for minDistance
+    double total_timer_updates = 0.0;     // Total timer for path updates
+
+    // Find shortest paths for all vertices
+    //#pragma omp parallel for
+    for (int count = 0; count < V - 1; count++) {
+        // Timer for minDistance function
+        auto start_minTimer = std::chrono::high_resolution_clock::now();  // Start timing minDistance
+        int u = minDistance(dist, sptSet);
+        auto end_minTimer = std::chrono::high_resolution_clock::now();    // End timing minDistance
+        std::chrono::duration<double> elapsed_min = end_minTimer - start_minTimer;
+        total_timer_minDistance += elapsed_min.count(); // Accumulate time
+
+// Mark picked vertex as processed
+        sptSet[u] = true; 
+
+        // Timing path updates
+        auto start_updateTimer = std::chrono::high_resolution_clock::now();  // Start timing path updates
+        // Update dist value of the adjacent vertices of the
+        // picked vertex.
+      // #pragma omp parallel for
+        for (int v = 0; v < V; v++) {
+            // Update vertex v only if is not in sptSet,
+            // there is an edge from u to v, and total
+            // weight of path from src to v through u is
+            // smaller than current value of dist[v]
+            if (!sptSet[v] && graph[u][v] && dist[u] != INT_MAX && dist[u] + graph[u][v] < dist[v]) {
+                //#pragma omp critical
+                dist[v] = dist[u] + graph[u][v];
+              // std::cout << "Updated distance to vertex " << v << ": " << dist[v] << "\n";
+            }
+             
+        }
+        //std::cout << "Updated distance to vertex " << v << ": " << dist[v] << "\n";
+        auto end_updateTimer = std::chrono::high_resolution_clock::now();    // End timing path updates
+        std::chrono::duration<double> elapsed_update = end_updateTimer - start_updateTimer;
+        total_timer_updates += elapsed_update.count(); // Accumulate time
+    }
+
+    auto end_timer = std::chrono::high_resolution_clock::now();  // End total execution timer
+    std::chrono::duration<double> elapsed_total = end_timer - start_timer;
+
+    // Print timings
+     //std::cout << "Value of dist[v]: " << dist[v] << "\n";
+    std::cout << "Total time for minDistance: " << total_timer_minDistance << " seconds\n";
+    std::cout << "Total time for path updates: " << total_timer_updates << " seconds\n";
+    std::cout << "Total execution time for Dijkstra algorithm: "
+              << elapsed_total.count() << " seconds\n";
+}
+
+// driver program to test above function
+int main() {
+    // Create a graph with random values
+    std::vector<std::vector<int>> graph(V, std::vector<int>(V, 0));
+
+    // Fixed seed for deterministic random number generation
+    const int seed = 42; 
+    std::mt19937 rng(seed); // Random number generator
+    std::uniform_int_distribution<int> dist(1, 100); // Random weights between 1 and 100
+    // Initialize the graph with random weights
+    //#pragma omp parallel for
+    for (int i = 0; i < V; i++) {
+        //#pragma omp parallel for
+        for (int j = 0; j < V; j++) {
+            if (i != j) {
+                 graph[i][j] = dist(rng); // Random weights between 1 and 100
+            }
+        }
+    }
+
+    // Run Dijkstra's algorithm starting from vertex 0
+    dijkstra(graph, 0);
+
+    return 0;
+}
+
+
